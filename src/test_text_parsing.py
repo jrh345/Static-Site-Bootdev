@@ -1,7 +1,8 @@
 import unittest
-from textnode import TextNode, TextType
+from textnode import TextNode, TextType, BlockType
 from text_parsing import (split_nodes_delimiter, extract_markdown_images, extract_markdown_links, 
-                         split_nodes_image, split_nodes_link, text_to_textnodes)
+                         split_nodes_image, split_nodes_link, text_to_textnodes, 
+                          markdown_to_blocks, block_to_block_type)
 
 
 class TestTextParsing(unittest.TestCase):
@@ -177,6 +178,92 @@ class TestTextParsing(unittest.TestCase):
     def test_text_to_textnodes_unbalanced_delimiter_raises(self):
         with self.assertRaises(ValueError):
             text_to_textnodes("This is **unbalanced")
+
+    def test_markdown_to_blocks(self):
+            md = text = """This is **bolded** paragraph
+
+This is another paragraph with _italic_ text and `code` here
+This is the same paragraph on a new line
+
+- This is a list
+- with items"""
+            blocks = markdown_to_blocks(md)
+            self.assertEqual(
+                blocks,
+                [
+                    "This is **bolded** paragraph",
+                    "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
+                    "- This is a list\n- with items",
+                ],
+            )
+
+    def test_markdown_to_blocks_single_block(self):
+        md = "This is a single paragraph with no blank lines"
+        self.assertEqual(["This is a single paragraph with no blank lines"], markdown_to_blocks(md))
+
+    def test_markdown_to_blocks_extra_blank_lines(self):
+        md = """First block
+
+
+
+Second block"""
+        self.assertEqual(["First block", "Second block"], markdown_to_blocks(md))
+
+    def test_markdown_to_blocks_leading_trailing_whitespace(self):
+        md = """
+        First block   
+
+        Second block   
+"""
+        self.assertEqual(["First block", "Second block"], markdown_to_blocks(md))
+
+    def test_markdown_to_blocks_heading(self):
+        md = """# Heading
+
+Paragraph"""
+        self.assertEqual(["# Heading", "Paragraph"], markdown_to_blocks(md))
+
+    def test_markdown_to_blocks_empty_string(self):
+        self.assertEqual([], markdown_to_blocks(""))
+    
+    def test_block_to_block_type_paragraph(self):
+        self.assertEqual(BlockType.P, block_to_block_type("This is a plain paragraph"))
+
+    def test_block_to_block_type_heading1(self):
+        self.assertEqual(BlockType.H, block_to_block_type("# Heading 1"))
+
+    def test_block_to_block_type_heading6(self):
+        self.assertEqual(BlockType.H, block_to_block_type("###### Heading 6"))
+
+    def test_block_to_block_type_heading_no_space_is_paragraph(self):
+        self.assertEqual(BlockType.P, block_to_block_type("#NoSpace"))
+
+    def test_block_to_block_type_code(self):
+        self.assertEqual(BlockType.C, block_to_block_type("```\nsome code\n```"))
+
+    def test_block_to_block_type_quote(self):
+        self.assertEqual(BlockType.Q, block_to_block_type(">line one\n>line two"))
+
+    def test_block_to_block_type_quote_with_space(self):
+        self.assertEqual(BlockType.Q, block_to_block_type("> line one\n> line two"))
+
+    def test_block_to_block_type_quote_mixed_is_paragraph(self):
+        self.assertEqual(BlockType.P, block_to_block_type("> line one\nline two"))
+
+    def test_block_to_block_type_unordered_list(self):
+        self.assertEqual(BlockType.UL, block_to_block_type("- item one\n- item two\n- item three"))
+
+    def test_block_to_block_type_unordered_list_missing_space_is_paragraph(self):
+        self.assertEqual(BlockType.P, block_to_block_type("-item one\n-item two"))
+
+    def test_block_to_block_type_ordered_list(self):
+        self.assertEqual(BlockType.OL, block_to_block_type("1. first\n2. second\n3. third"))
+
+    def test_block_to_block_type_ordered_list_wrong_start_is_paragraph(self):
+        self.assertEqual(BlockType.P, block_to_block_type("2. first\n3. second"))
+
+    def test_block_to_block_type_ordered_list_non_incrementing_is_paragraph(self):
+        self.assertEqual(BlockType.P, block_to_block_type("1. first\n3. second"))
 
 if __name__ == "__main__":
     unittest.main()

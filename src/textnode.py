@@ -1,6 +1,14 @@
 from enum import Enum
 from htmlnode import LeafNode
 
+class BlockType(Enum):
+    P = "paragraph"
+    H = "heading"
+    C = "code"
+    Q = "quote"
+    UL = "unordered list"
+    OL = "ordered list"
+
 class TextType(Enum):
     TEXT = "text (plain)"
     BOLD = "**Bold text**"

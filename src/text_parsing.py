@@ -1,4 +1,4 @@
-from textnode import TextNode, TextType
+from textnode import TextNode, TextType, BlockType
 import re
 
 
@@ -82,3 +82,21 @@ def text_to_textnodes(text):
     nodes = split_nodes_image(nodes)
     nodes = split_nodes_link(nodes)
     return nodes
+
+
+def markdown_to_blocks(markdown):
+    return [block.strip() for block in markdown.split("\n\n") if block.strip()]
+
+def block_to_block_type(block):
+    lines = block.split("\n")
+    if re.match(r"^#{1,6} ", block):
+        return BlockType.H
+    if block.startswith("```") and block.endswith("```"):
+        return BlockType.C
+    if all(line.startswith(">") for line in lines):
+        return BlockType.Q
+    if all(line.startswith("- ") for line in lines):
+        return BlockType.UL
+    if all(re.match(rf"^{i + 1}\. ", line) for i, line in enumerate(lines)):
+        return BlockType.OL
+    return BlockType.P

@@ -128,7 +128,7 @@ def markdown_to_blocks(markdown):
 
 
 def block_to_block_type(block):
-    lines = block.split("\n")
+    lines = [line.strip() for line in block.splitlines() if line.strip()]
     stripped = block.strip()
     if re.match(r"^#{1,6} ", stripped):
         return BlockType.H
@@ -136,10 +136,12 @@ def block_to_block_type(block):
         return BlockType.C
     if all(line.startswith(">") for line in lines):
         return BlockType.Q
-    if all(re.match(r"^- ", line) for line in lines if line.strip()):
+    if all(re.match(r"^- ", line) for line in lines):
         return BlockType.UL
-    if all(re.match(r"^\d+\. ", line) for line in lines if line.strip()):
-        return BlockType.OL
+    if lines and all(re.match(r"^\d+\. ", line) for line in lines):
+        numbers = [int(re.match(r"^(\d+)\. ", line).group(1)) for line in lines]
+        if numbers == list(range(1, len(numbers) + 1)):
+            return BlockType.OL
     return BlockType.P
 
 
@@ -186,7 +188,8 @@ def block_to_html_node(block):
         quote_lines = [line[1:].strip() for line in stripped.splitlines() if line.startswith(">")]
         return ParentNode("blockquote", text_to_children("\n".join(quote_lines)))
 
-    return ParentNode("p", text_to_children(stripped))
+    paragraph_text = " ".join(stripped.splitlines())
+    return ParentNode("p", text_to_children(paragraph_text))
 
 
 def markdown_to_html_node(markdown):
